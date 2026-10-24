@@ -430,7 +430,7 @@ def export_timetable_to_pdf(
     filename="timetable_report.pdf",
     config=None,
 ):
-    """Export a compact, portrait A4 timetable resembling the reference."""
+    """Export a compact, portrait A4 timetable in the reference's style."""
 
     if df.empty:
         print(f"No timetable data for {route_name}; PDF not generated.")
@@ -439,8 +439,8 @@ def export_timetable_to_pdf(
     config = config or {}
 
     # --- Page setup: portrait A4 ---
-    margin_left = 7 * mm
-    margin_right = 7 * mm
+    margin_left = 12 * mm
+    margin_right = 12 * mm
     margin_top = 9 * mm
     margin_bottom = 8 * mm
 
@@ -461,8 +461,8 @@ def export_timetable_to_pdf(
         "TimetableTitle",
         parent=styles["Normal"],
         fontName="Helvetica",
-        fontSize=7,
-        leading=8,
+        fontSize=8,
+        leading=9,
         alignment=1,
         textColor=colors.black,
         spaceAfter=2 * mm,
@@ -470,14 +470,15 @@ def export_timetable_to_pdf(
 
     elements = [
         Paragraph(
-            f"Timetable — {route_name}",
+            f"{route_name}",
             title_style,
         ),
         Spacer(1, 1 * mm),
     ]
 
     headers = [str(col) for col in df.columns]
-    data = [headers]
+    display_headers = ["Vuoro" if col == "Block" else col for col in headers]
+    data = [display_headers]
 
     for _, row in df.iterrows():
         formatted_row = []
@@ -489,9 +490,9 @@ def export_timetable_to_pdf(
         data.append(formatted_row)
 
     usable_width = A4[0] - margin_left - margin_right
-    col_count = len(headers)
+    col_count = len(display_headers)
 
-    block_width = 9 * mm
+    block_width = 10 * mm
     remaining_width = usable_width - block_width
 
     if col_count > 1:
@@ -517,36 +518,38 @@ def export_timetable_to_pdf(
     )
 
     shaded_indices = [
-        i for i, col in enumerate(headers)
+        i for i, col in enumerate(display_headers)
         if col in shaded_stops
     ]
 
     light_grey = colors.HexColor("#D0D0D0")
     rule_grey = colors.HexColor("#777777")
+    grid_grey = colors.HexColor("#B0B0B0")
 
     table_style = [
         ("BACKGROUND", (0, 0), (-1, 0), colors.white),
         ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, 0), 5.8),
-        ("LEADING", (0, 0), (-1, 0), 6.2),
+        ("FONTSIZE", (0, 0), (-1, 0), 6.3),
+        ("LEADING", (0, 0), (-1, 0), 7),
 
         ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 1), (-1, -1), 5.5),
-        ("LEADING", (0, 1), (-1, -1), 6.0),
+        ("FONTSIZE", (0, 1), (-1, -1), 6),
+        ("LEADING", (0, 1), (-1, -1), 7),
 
         ("LEFTPADDING", (0, 0), (-1, -1), 0.5),
         ("RIGHTPADDING", (0, 0), (-1, -1), 0.5),
-        ("TOPPADDING", (0, 0), (-1, 0), 1.5),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 2),
-        ("TOPPADDING", (0, 1), (-1, -1), 0.3),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 0.3),
+        ("TOPPADDING", (0, 0), (-1, 0), 1),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 1),
+        ("TOPPADDING", (0, 1), (-1, -1), 0.4),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 0.4),
 
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
 
+        ("GRID", (0, 0), (-1, -1), 0.15, grid_grey),
+        ("BOX", (0, 0), (-1, -1), 0.35, rule_grey),
         ("LINEBELOW", (0, 0), (-1, 0), 0.7, colors.black),
-        ("LINEBELOW", (0, 1), (-1, -1), 0.15, rule_grey),
         ("LINEBEFORE", (1, 0), (1, -1), 0.45, colors.black),
         ("FONTNAME", (0, 0), (0, -1), "Helvetica"),
         ("BACKGROUND", (0, 1), (-1, -1), colors.white),
