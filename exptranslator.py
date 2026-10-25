@@ -1,21 +1,21 @@
 import json
 import os
 import winreg
-from pathlib import Path
-from xml.sax.saxutils import escape
+lazy from pathlib import Path
+lazy from xml.sax.saxutils import escape
 
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (
+lazy from reportlab.lib.pagesizes import A4
+lazy from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak,
     Flowable,
 )
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import mm
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont, TTFError
-from reportlab.pdfgen.canvas import Canvas
+lazy from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+lazy from reportlab.lib import colors
+lazy from reportlab.lib.units import mm
+lazy from reportlab.pdfbase.pdfmetrics import stringWidth
+lazy from reportlab.pdfbase import pdfmetrics
+lazy from reportlab.pdfbase.ttfonts import TTFont, TTFError
+lazy from reportlab.pdfgen.canvas import Canvas
 import pandas as pd
 
 CONFIG_FILE_NAME = ""
