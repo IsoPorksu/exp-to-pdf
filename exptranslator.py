@@ -1,78 +1,210 @@
+import json
+import os
+import winreg
+from pathlib import Path
+from xml.sax.saxutils import escape
+
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle,
-    Paragraph, Spacer, KeepTogether
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak,
+    Flowable,
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont, TTFError
+from reportlab.pdfgen.canvas import Canvas
 import pandas as pd
+
+BASE_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = BASE_DIR / "config-files" / "config_kohde_321_talvi_2028.json"
 
 # Display settings
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 1000)
 
-file_name = "RAITIO_Hastus2017_1013_Ma-Pe_20261109_20270425.exp"
 
-# --- MULTI-ROUTE CONFIGURATION ---
-ROUTES = {
-    "11/13": {
-        "ROUTE_SHAPE": [
-            "KRU",
-            "HOP1",
-            "ZOO1",
-            "NIH1",
-            "KLA12",
-            "HÄM1",
-            "MÄR1",  # Pre-pivot MÄR (Index 6)
-            "PRA1",
-            "LPA",  # Index 8: First occurrence (arrival / pre-pivot)
-            "LPA",  # Index 9: Second occurrence (departure / post-pivot)
-            "PRA2",
-            "MÄR2",  # Post-pivot MÄR (Index 11)
-            "HÄM2",
-            "KLA22",
-            "NIH2",
-            "ZOO2",
-            "HOP2",
-            "KRU",
-        ],
-        "PIVOT_STOP": "LPA",
-        "MATCH_PATTERNS": [["KLA12"], ["KLA22"]],
-        "SHADED_STOPS": ["KLA12", "PRA1", "KLA22"],
-    },
-    "Hallista linjalle": {
-        "ROUTE_SHAPE": [
-            "RSV_PO",
-            "RUS2",
-            "TTP2",
-            "EL2",
-            "PRA2",
-            "LPA",
-        ],
-        "PIVOT_STOP": "LPA",
-        "SORT_INDICES": [3, 8],  # Fallback sort indices for routes without MÄR
-        "MATCH_PATTERNS": [["RUS1"], ["RUS2"]],
-        "SHADED_STOPS": ["PRA2", "LPA"],
-        "SHOW_FOLLOWING_LINE": True,
-    },
-    "Linjasta halliin": {
-        "ROUTE_SHAPE": [
-            "LPA",
-            "PRA1",
-            "EL1",
-            "TTP1",
-            "RUS1",
-            "RSV_PI",
-        ],
-        "PIVOT_STOP": "LPA",
-        "SORT_INDICES": [3, 8],  # Fallback sort indices for routes without MÄR
-        "MATCH_PATTERNS": [["RUS1"], ["RUS2"]],
-        "SHADED_STOPS": ["PRA1", "LPA"],
-    },
-}
+class PageColorMarker(Flowable):
+    def __init__(self, page_color, day_type, page_state):
+        super().__init__()
+        self.page_color = page_color
+        self.day_type = day_type
+        self.page_state = page_state
+        self.width = 0
+        self.height = 0
+
+    def draw(self):
+        self.page_state["color"] = self.page_color
+        self.page_state["day_type"] = self.day_type
+
+
+class PageMetadataCanvas(Canvas):
+    def __init__(self, *args, page_state, draw_page_chrome, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+        self._page_state = page_state
+        self._draw_page_chrome = draw_page_chrome
+
+    def showPage(self):
+        self._saved_page_states.append(
+            (dict(self.__dict__), dict(self._page_state))
+        )
+        self._startPage()
+
+    def save(self):
+        for page_number, (page_state, metadata) in enumerate(
+            self._saved_page_states, start=1
+        ):
+            self.__dict__.update(page_state)
+            page_contents = self._code
+            self._code = []
+            self._draw_page_chrome(self, page_number, metadata)
+            self._code.extend(page_contents)
+            super().showPage()
+        super().save()
+
+
+def load_config(filepath):
+    with open(filepath, "r", encoding="utf-8") as config_file:
+        config = json.load(config_file)
+
+    if not isinstance(config.get("font_name"), str) or not config["font_name"]:
+        raise ValueError("Configuration must contain a non-empty 'font_name'.")
+    if not isinstance(config.get("font_size"), (int, float)) or config["font_size"] <= 0:
+        raise ValueError("'font_size' must be a positive number.")
+    if not isinstance(config.get("routes"), list) or not config["routes"]:
+        raise ValueError("Configuration must contain a non-empty 'routes' list.")
+    if not isinstance(config.get("file_format"), str) or not config["file_format"]:
+        raise ValueError("Configuration must contain a recognised file_format.")
+    if not isinstance(config.get("day_types"), list) or not config["day_types"]:
+        raise ValueError("Configuration must contain a non-empty 'day_types' list.")
+
+    for route in config["routes"]:
+        for key in ("name", "route_shape", "pivot_stop"):
+            if key not in route:
+                raise ValueError(f"Route configuration is missing '{key}': {route}")
+        if not isinstance(route["name"], str) or not isinstance(route["pivot_stop"], str):
+            raise ValueError(f"Route name and pivot_stop must be strings: {route}")
+        if (
+            not isinstance(route["route_shape"], list)
+            or not route["route_shape"]
+            or not all(isinstance(stop, str) for stop in route["route_shape"])
+        ):
+            raise ValueError(f"Route '{route['name']}' has an empty route_shape.")
+        if not isinstance(route.get("stop_labels", {}), dict):
+            raise ValueError(f"Route '{route['name']}' stop_labels must be an object.")
+
+    for day_type in config["day_types"]:
+        for key in ("name", "exp_file"):
+            if key not in day_type:
+                raise ValueError(
+                    f"Day type configuration is missing '{key}': {day_type}"
+                )
+        if not isinstance(day_type["name"], str) or not isinstance(day_type["exp_file"], str):
+            raise ValueError(f"Day type name and exp_file must be strings: {day_type}")
+        try:
+            colors.toColor(day_type.get("page_color", "#FFFFFF"))
+        except ValueError as error:
+            raise ValueError(
+                f"Invalid page_color for day type '{day_type['name']}'."
+            ) from error
+
+    for key in ("page_header", "page_footer"):
+        if key in config and not isinstance(config[key], str):
+            raise ValueError(f"'{key}' must be a string.")
+
+    return config
+
+
+def register_system_font(font_name):
+    if font_name in pdfmetrics.getRegisteredFontNames():
+        return pdfmetrics.getFont(font_name)
+
+    font_roots = [
+        Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts",
+        Path(os.environ.get("LOCALAPPDATA", ""))
+        / "Microsoft"
+        / "Windows"
+        / "Fonts",
+    ]
+    font_aliases = {}
+    for root in font_roots:
+        if root.is_dir():
+            for extension in ("*.ttf", "*.otf"):
+                for font_path in root.rglob(extension):
+                    font_aliases.setdefault(font_path.resolve(), set())
+
+    registry_keys = (
+        (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
+        (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"),
+    )
+    for hive, key_path in registry_keys:
+        try:
+            key = winreg.OpenKey(hive, key_path)
+        except FileNotFoundError:
+            continue
+        with key:
+            value_count = winreg.QueryInfoKey(key)[1]
+            for index in range(value_count):
+                alias, value, _ = winreg.EnumValue(key, index)
+                font_path = Path(os.path.expandvars(value))
+                candidates = (
+                    [font_path]
+                    if font_path.is_absolute()
+                    else [root / font_path.name for root in font_roots]
+                )
+                for candidate in candidates:
+                    if candidate.is_file():
+                        font_aliases.setdefault(candidate.resolve(), set()).add(
+                            alias.rsplit("(", 1)[0].strip()
+                        )
+                        break
+
+    requested_name = font_name.casefold()
+    unsupported_match = None
+
+    for font_path, aliases in sorted(font_aliases.items()):
+        try:
+            font = TTFont(font_name, str(font_path))
+        except TTFError as error:
+            if requested_name in {
+                font_path.stem.casefold(),
+                *(alias.casefold() for alias in aliases),
+            }:
+                unsupported_match = (font_path, error)
+            continue
+
+        family_name = font.face.familyName
+        face_name = font.face.name
+        if isinstance(family_name, bytes):
+            family_name = family_name.decode("latin-1")
+        if isinstance(face_name, bytes):
+            face_name = face_name.decode("latin-1")
+        if requested_name not in {
+            str(family_name).casefold(),
+            str(face_name).casefold(),
+            font_path.stem.casefold(),
+            *(alias.casefold() for alias in aliases),
+        }:
+            continue
+
+        pdfmetrics.registerFont(font)
+        return font
+
+    if unsupported_match:
+        path, error = unsupported_match
+        raise ValueError(
+            f"Installed font '{font_name}' cannot be loaded by ReportLab "
+            f"({path}): {error}"
+        ) from error
+
+    roots = ", ".join(str(root) for root in font_roots)
+    raise ValueError(
+        f"Installed TrueType font '{font_name}' was not found in: {roots}"
+    )
 
 
 def normalize_time(t_str):
