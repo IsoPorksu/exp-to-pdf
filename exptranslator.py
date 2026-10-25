@@ -235,7 +235,7 @@ def time_to_min(t_str):
     return -1
 
 
-def parse_exp_file(filepath):
+def parse_exp_file(filepath, config):
     blocks = []
     current_block = None
     current_trip = None
@@ -249,35 +249,65 @@ def parse_exp_file(filepath):
             parts = line.split(";")
             record_type = parts[0]
 
-            if record_type == "block":
-                current_block = {
-                    "block_id": parts[1],
-                    "network": parts[2],
-                    "trips": [],
-                }
-                blocks.append(current_block)
-
-            elif record_type == "trip":
-                current_trip = {
-                    "trip_id": parts[1],
-                    "start_stop": parts[2],
-                    "end_stop": parts[3],
-                    "line_number": parts[4] if len(parts) > 4 else "",
-                    "start_time": normalize_time(parts[7]),
-                    "end_time": normalize_time(parts[8]),
-                    "timing_points": [],
-                }
-                if current_block:
-                    current_block["trips"].append(current_trip)
-
-            elif record_type == "triptp":
-                if current_trip:
-                    tp = {
-                        "stop_name": parts[1],
-                        "time": normalize_time(parts[2]),
-                        "distance": parts[3] if len(parts) > 3 else None,
+            if config["file_format"] == "tram":
+                if record_type == "block":
+                    current_block = {
+                        "block_id": parts[1],
+                        "vehicle_type": parts[2],
+                        "trips": [],
                     }
-                    current_trip["timing_points"].append(tp)
+                    blocks.append(current_block)
+
+                elif record_type == "trip":
+                    current_trip = {
+                        "trip_id": parts[1],
+                        "start_stop": parts[2],
+                        "end_stop": parts[3],
+                        "line_number": parts[4] if len(parts) > 4 else "",
+                        "start_time": normalize_time(parts[7]),
+                        "end_time": normalize_time(parts[8]),
+                        "timing_points": [],
+                    }
+                    if current_block:
+                        current_block["trips"].append(current_trip)
+
+                elif record_type == "triptp":
+                    if current_trip:
+                        tp = {
+                            "stop_name": parts[1],
+                            "time": normalize_time(parts[2]),
+                        }
+                        current_trip["timing_points"].append(tp)
+
+            elif config["file_format"] == "bus_tender":
+                if record_type == "vuoro":
+                    current_block = {
+                        "block_id": parts[1],
+                        "vehicle_type": parts[2],
+                        "trips": [],
+                    }
+                    blocks.append(current_block)
+
+                elif record_type == "lähtö":
+                    current_trip = {
+                        "trip_id": parts[1],
+                        "start_stop": parts[2],
+                        "end_stop": parts[3],
+                        "line_number": parts[4] if len(parts) > 4 else "",
+                        "start_time": normalize_time(parts[7]),
+                        "end_time": normalize_time(parts[8]),
+                        "timing_points": [],
+                    }
+                    if current_block:
+                        current_block["trips"].append(current_trip)
+
+                elif record_type == "pysäkki":
+                    if current_trip:
+                        tp = {
+                            "stop_name": parts[1],
+                            "time": normalize_time(parts[5]),
+                        }
+                        current_trip["timing_points"].append(tp)
 
     return blocks
 
@@ -324,7 +354,7 @@ def combine_block_trips(blocks):
 
         combined_blocks.append({
             "block_id": block["block_id"],
-            "network": block["network"],
+            "vehicle_type": block["vehicle_type"],
             "trips": new_trips,
         })
     return combined_blocks
