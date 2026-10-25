@@ -18,8 +18,12 @@ from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen.canvas import Canvas
 import pandas as pd
 
+CONFIG_FILE_NAME = ""
+while not CONFIG_FILE_NAME:
+    CONFIG_FILE_NAME = input("Please type the file name of the config file (e.g. \"config_11_13_9.11.2026.json\") / Ole hyvä ja kirjoita asetustiedoston nimi (esim. \"config_11_13_9.11.2026.json\"): ")
+
 BASE_DIR = Path(__file__).resolve().parent
-CONFIG_PATH = BASE_DIR / "config-files" / "config_kohde_321_talvi_2028.json"
+CONFIG_PATH = BASE_DIR / "config-files" / CONFIG_FILE_NAME
 
 # Display settings
 pd.set_option("display.max_rows", None)
@@ -1106,12 +1110,12 @@ def main():
 
         blocks = combine_block_trips(parse_exp_file(exp_path, config))
         route_timetables = []
-        print(f"\n================ {day_type['name']} ================")
+        #print(f"\n================ {day_type['name']} ================")
         for route_config in config["routes"]:
             route_name = route_config["name"]
             timetable = generate_timetable(blocks, route_config)
-            print(f"\n--- {route_name} ---")
-            print(timetable.to_string(index=False))
+            #print(f"\n--- {route_name} ---")
+            #print(timetable.to_string(index=False))
             route_timetables.append((route_name, timetable, route_config))
         day_timetables.append((day_type["name"], route_timetables, day_type))
 
