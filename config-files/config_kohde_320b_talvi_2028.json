@@ -1,0 +1,55 @@
+{
+  "output_pdf": "600-aikataulu.pdf",
+  "font_name": "Arial",
+  "font_size": 8.5,
+  "page_header": "600 talvi 2028-2029",
+  "page_footer": "Sivu {page} - {day_type}",
+  "file_format": "bus_tender",
+  "day_types": [
+    {
+      "name": "Arki",
+      "page_color": "#FFFFFF",
+      "exp_file": "data-files/KILP_Kohde 320b_4600_Ma-Pe_Talvi_Versio0_Voim_alk_20280814_Tulostettu_20260701.exp"
+    },
+    {
+      "name": "Lauantai",
+      "page_color": "#dfffdf",
+      "exp_file": "data-files/KILP_Kohde 320b_4600_La_Talvi_Versio0_Voim_alk_20280814_Tulostettu_20260701.exp"
+    },
+    {
+      "name": "Sunnuntai",
+      "page_color": "#ffffdf",
+      "exp_file": "data-files/KILP_Kohde 320b_4600_Su_Talvi_Versio0_Voim_alk_20280814_Tulostettu_20260701.exp"
+    }
+  ],
+  "routes": [
+    {
+      "name": "600",
+      "route_shape": [
+        "1RT",
+        "1HT",
+        "1SÖ",
+        "1KÄPY",
+        "4TAMMI",
+        "4JUMBO",
+        "4AVIA",
+        "4LENT2",
+        "4LENT2",
+        "4AVIA",
+        "4JUMBO",
+        "4TAMMI",
+        "1KÄPY",
+        "1SÖ",
+        "1HT",
+        "1RT"
+      ],
+      "pivot_stop": "4LENT2",
+      "match_patterns": [
+        ["1SÖ"]
+      ],
+      "shaded_stops": ["1SÖ", "4JUMBO", "4JUMBO", "1SÖ"],
+      "stop_labels": {
+      }
+    }
+  ]
+}
