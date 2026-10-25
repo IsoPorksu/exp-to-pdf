@@ -1,0 +1,102 @@
+{
+  "output_pdf": "11-13-aikataulut.pdf",
+  "font_name": "Arial",
+  "font_size": 8.5,
+  "page_header": "Linjojen 11 ja 13 aikataulut 9.11.2026 alkaen",
+  "page_footer": "Sivu {page} - {day_type}",
+  "file_format": "tram",
+  "day_types": [
+    {
+      "name": "Arki",
+      "page_color": "#FFFFFF",
+      "exp_file": "data-files/RAITIO_Hastus2017_1013_Ma-Pe_20261109_20270425.exp"
+    },
+    {
+      "name": "Lauantai",
+      "page_color": "#dfffdf",
+      "exp_file": "data-files/RAITIO_Hastus2017_1013_La_20261109_20270425.exp"
+    },
+    {
+      "name": "Sunnuntai",
+      "page_color": "#ffffdf",
+      "exp_file": "data-files/RAITIO_Hastus2017_1013_Su_20261109_20270425.exp"
+    }
+  ],
+  "routes": [
+    {
+      "name": "Hallista linjalle",
+      "route_shape": [
+        "RSV_PO",
+        "RUS2",
+        "TTP2",
+        "EL2",
+        "PRA2",
+        "LPA"
+      ],
+      "pivot_stop": "LPA",
+      "match_patterns": [
+        ["RUS1"],
+        ["RUS2"]
+      ],
+      "shaded_stops": ["RUS2", "PRA2"],
+      "show_following_line": true,
+      "side_by_side_with": "Linjasta halliin",
+      "stop_labels": {
+        "RSV_PO": "RSV"
+      }
+    },
+    {
+      "name": "Linjasta halliin",
+      "route_shape": [
+        "LPA",
+        "PRA1",
+        "EL1",
+        "TTP1",
+        "RUS1",
+        "RSV_PI"
+      ],
+      "pivot_stop": "LPA",
+      "match_patterns": [
+        ["RUS1"],
+        ["RUS2"]
+      ],
+      "shaded_stops": ["PRA1", "RUS1"],
+      "stop_labels": {
+        "RSV_PI": "RSV"
+      }
+    },
+    {
+      "name": "11/13",
+      "route_shape": [
+        "KRU",
+        "HOP1",
+        "ZOO1",
+        "NIH1",
+        "KLA12",
+        "HÄM1",
+        "MÄR1",
+        "PRA1",
+        "LPA",
+        "LPA",
+        "PRA2",
+        "MÄR2",
+        "HÄM2",
+        "KLA22",
+        "NIH2",
+        "ZOO2",
+        "HOP2",
+        "KRU"
+      ],
+      "pivot_stop": "LPA",
+      "match_patterns": [
+        ["KLA12"],
+        ["KLA22"]
+      ],
+      "shaded_stops": ["KLA12", "PRA1", "PRA2", "KLA22"],
+      "stop_labels": {
+        "KLA12": "KLA1",
+        "KLA22": "KLA2"
+      }
+    }
+  ]
+}
