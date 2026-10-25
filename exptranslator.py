@@ -400,7 +400,7 @@ def map_trip_to_shape(trip, route_shape, pivot_stop, force_half=None):
 
     shape_idx = allowed_range.start
 
-    for i, tp in enumerate(trip_tps):
+    for tp in trip_tps:
         raw_stop = tp["stop_name"]
         t_val = time_to_min(tp["time"])
 
@@ -439,9 +439,9 @@ def map_trip_to_shape(trip, route_shape, pivot_stop, force_half=None):
 
 
 def generate_timetable(blocks, config):
-    route_shape = config["ROUTE_SHAPE"]
-    pivot_stop = config["PIVOT_STOP"]
-    match_patterns = config.get("MATCH_PATTERNS", [])
+    route_shape = config["route_shape"]
+    pivot_stop = config["pivot_stop"]
+    match_patterns = config.get("match_patterns", [])
 
     pivot_indices = [i for i, stop in enumerate(route_shape) if stop == pivot_stop]
     has_two_pivot_stops = len(pivot_indices) >= 2
@@ -527,7 +527,7 @@ def generate_timetable(blocks, config):
             row = {"Block": ft["block_id"]}
             row["Linjalle"] = (
                 f"→ L{ft['following_line_number']}"
-                if config.get("SHOW_FOLLOWING_LINE")
+                if config.get("show_following_line")
                 and ft["following_line_number"]
                 else ""
             )
@@ -575,7 +575,7 @@ def generate_timetable(blocks, config):
             row = {"Block": ft["block_id"]}
             row["Linjalle"] = (
                 f"→ L{ft['following_line_number']}"
-                if config.get("SHOW_FOLLOWING_LINE")
+                if config.get("show_following_line")
                 and ft["following_line_number"]
                 else ""
             )
@@ -626,8 +626,11 @@ def generate_timetable(blocks, config):
         table_data.append(row_dict)
 
     df_sorted = pd.DataFrame(table_data)
-    df_sorted.columns = ["Block"] + route_shape
-    if config.get("SHOW_FOLLOWING_LINE"):
+    stop_labels = config.get("stop_labels", {})
+    df_sorted.columns = ["Block"] + [
+        stop_labels.get(stop, stop) for stop in route_shape
+    ]
+    if config.get("show_following_line"):
         df_sorted["Linjalle"] = [
             row.get("Linjalle", "") for row in rows
         ]
